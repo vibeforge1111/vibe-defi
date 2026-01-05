@@ -13,7 +13,6 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
-    "postinstall": "prisma generate --schema=apps/api/src/db/prisma/schema.prisma || true",
     "db:migrate": "pnpm --filter @vibe-defi/api prisma migrate dev",
     "db:generate": "pnpm --filter @vibe-defi/api prisma generate",
     "db:seed": "pnpm --filter @vibe-defi/api prisma db seed"
