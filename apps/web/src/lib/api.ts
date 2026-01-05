@@ -2,8 +2,8 @@ import type { FarmDetail, FarmListParams, FarmListResponse, APYHistoryPoint, Cha
 import type { ApiResponse, ILCalculatorParams, ILCalculatorResult } from '@/types/api';
 import { mockFarms } from './mockData';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const USE_MOCK = !import.meta.env.VITE_API_URL;
+const API_BASE = '';
+const USE_MOCK = true; // Always use mock data - no backend API
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
