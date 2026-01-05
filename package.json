@@ -1,0 +1,29 @@
+{
+  "name": "vibe-defi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cross-chain DeFi yield farming analyzer",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @vibe-defi/web dev",
+    "dev:api": "pnpm --filter @vibe-defi/api dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @vibe-defi/web build",
+    "build:api": "pnpm --filter @vibe-defi/api build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean",
+    "db:migrate": "pnpm --filter @vibe-defi/api prisma migrate dev",
+    "db:generate": "pnpm --filter @vibe-defi/api prisma generate",
+    "db:seed": "pnpm --filter @vibe-defi/api prisma db seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "prettier": "^3.2.4",
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

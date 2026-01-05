@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Supported blockchain networks
+model Chain {
+  id          String   @id // ethereum, arbitrum, base, bnb, solana
+  name        String
+  chainId     Int      @unique
+  rpcUrl      String?
+  explorerUrl String
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  pools     Pool[]
+  tokens    Token[]
+  protocols ProtocolChain[]
+}
+
+// DeFi protocols (Uniswap, Aave, Curve, etc.)
+model Protocol {
+  id          String   @id
+  name        String
+  website     String
+  logoUrl     String?
+  auditStatus String   @default("Unknown") // Audited, Unaudited, Unknown
+  description String?
+  twitter     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pools  Pool[]
+  chains ProtocolChain[]
+}
+
+// Many-to-many: Protocol <-> Chain
+model ProtocolChain {
+  protocolId String
+  chainId    String
+  protocol   Protocol @relation(fields: [protocolId], references: [id])
+  chain      Chain    @relation(fields: [chainId], references: [id])
+
+  @@id([protocolId, chainId])
+}
+
+// Tokens
+model Token {
+  id           String   @id // chain:address
+  chainId      String
+  address      String
+  symbol       String
+  name         String?
+  decimals     Int
+  logoUrl      String?
+  isStablecoin Boolean  @default(false)
+  coingeckoId  String?
+  createdAt    DateTime @default(now())
+
+  chain       Chain        @relation(fields: [chainId], references: [id])
+  priceData   TokenPrice?
+  poolsToken0 Pool[]       @relation("Token0")
+  poolsToken1 Pool[]       @relation("Token1")
+
+  @@unique([chainId, address])
+  @@index([symbol])
+}
+
+// Token prices (updated frequently)
+model TokenPrice {
+  tokenId        String   @id
+  priceUsd       Decimal  @db.Decimal(30, 18)
+  priceChange24h Decimal? @db.Decimal(10, 4)
+  volume24h      Decimal? @db.Decimal(30, 2)
+  marketCap      Decimal? @db.Decimal(30, 2)
+  updatedAt      DateTime @default(now())
+
+  token Token @relation(fields: [tokenId], references: [id])
+}
+
+// Yield farming pools
+model Pool {
+  id           String   @id // chain:protocol:address
+  chainId      String
+  protocolId   String
+  poolAddress  String
+  name         String
+  poolType     String   // AMM, Lending, Staking, Vault
+
+  // Token composition
+  token0Id String?
+  token1Id String?
+
+  // Yield data
+  tvl           Decimal  @db.Decimal(30, 2)
+  tvlChange24h  Decimal? @db.Decimal(10, 4)
+  baseApy       Decimal  @db.Decimal(10, 4)
+  rewardApy     Decimal  @db.Decimal(10, 4)
+  totalApy      Decimal  @db.Decimal(10, 4)
+
+  // Risk data
+  riskScore   Int     @default(50) // 1-100
+  ilRisk      String  @default("Medium") // None, Low, Medium, High
+  riskFactors Json? // { smartContract, impermanentLoss, protocol, liquidity, rewardToken }
+
+  // Metadata
+  farmUrl      String?
+  isActive     Boolean  @default(true)
+  defillamaId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  chain      Chain       @relation(fields: [chainId], references: [id])
+  protocol   Protocol    @relation(fields: [protocolId], references: [id])
+  token0     Token?      @relation("Token0", fields: [token0Id], references: [id])
+  token1     Token?      @relation("Token1", fields: [token1Id], references: [id])
+  apyHistory ApyHistory[]
+
+  @@unique([chainId, poolAddress])
+  @@index([chainId])
+  @@index([protocolId])
+  @@index([totalApy(sort: Desc)])
+  @@index([tvl(sort: Desc)])
+  @@index([riskScore])
+  @@index([isActive])
+}
+
+// Historical APY data (time-series)
+model ApyHistory {
+  id        String   @id @default(cuid())
+  poolId    String
+  tvl       Decimal  @db.Decimal(30, 2)
+  baseApy   Decimal  @db.Decimal(10, 4)
+  rewardApy Decimal  @db.Decimal(10, 4)
+  totalApy  Decimal  @db.Decimal(10, 4)
+  timestamp DateTime @default(now())
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, timestamp(sort: Desc)])
+}
+
+// User alerts (Phase 2)
+model Alert {
+  id            String    @id @default(cuid())
+  userId        String // Wallet address
+  poolId        String?
+  alertType     String // apy_drop, apy_rise, tvl_drop, risk_change, new_pool
+  threshold     Decimal?  @db.Decimal(10, 4)
+  chainFilter   String[] // Filter alerts by chain
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([poolId])
+  @@index([isActive])
+}
